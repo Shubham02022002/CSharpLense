@@ -12,7 +12,7 @@ if (!File.Exists(filePath))
 
 var sourceCode = await File.ReadAllTextAsync(filePath);
 
-var analyzer = new RoslynCSharpAnalyzer();
+ICSharpAnalyzer analyzer = new RoslynCSharpAnalyzer();
 
 var analysis = await analyzer.AnalyzeAsync(sourceCode);
 
@@ -41,4 +41,14 @@ foreach (var relationship in analysis.Relationships)
 
     Console.WriteLine(
         $"  {source.Name} --{relationship.Type}--> {target.Name}");
+}
+
+Console.WriteLine("\nDiagnostics:");
+
+foreach (var diagnostic in analysis.Diagnostics)
+{
+    Console.WriteLine(
+        $"  {diagnostic.Id} [{diagnostic.Severity}] " +
+        $"Line {diagnostic.StartLine}, Column {diagnostic.StartColumn}: " +
+        diagnostic.Message);
 }

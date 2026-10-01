@@ -42,3 +42,4 @@ C:\Users\chaud\OneDrive\Desktop\CSharpLense\src\CSharpLens.Cli\bin\Debug\net10.0
 C:\Users\chaud\OneDrive\Desktop\CSharpLense\src\CSharpLens.Cli\bin\Debug\net10.0\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll
 C:\Users\chaud\OneDrive\Desktop\CSharpLense\src\CSharpLens.Cli\obj\Debug\net10.0\CSharpLens.Cli.csproj.AssemblyReference.cache
 C:\Users\chaud\OneDrive\Desktop\CSharpLense\src\CSharpLens.Cli\obj\Debug\net10.0\CSharpLe.DC1BF52F.Up2Date
+C:\Users\chaud\OneDrive\Desktop\CSharpLense\src\CSharpLens.Cli\obj\Debug\net10.0\CSharpLens.Cli.sourcelink.json

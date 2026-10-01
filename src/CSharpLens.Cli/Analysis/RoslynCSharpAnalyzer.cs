@@ -5,20 +5,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CSharpLens.Cli.Analysis;
 
-public class RoslynCSharpAnalyzer
+public class RoslynCSharpAnalyzer : ICSharpAnalyzer
 {
-    public async Task<CodeAnalysis> AnalyzeAsync(string sourceCode)
+    public async Task<CodeAnalysis> AnalyzeAsync(
+    string sourceCode,
+    CancellationToken cancellationToken = default)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
+
+        var references = GetMetadataReferences();
 
         var compilation = CSharpCompilation.Create(
             assemblyName: "CSharpLensAnalysis",
             syntaxTrees: [syntaxTree],
-            references:
-            [
-                MetadataReference.CreateFromFile(
-                    typeof(object).Assembly.Location)
-            ]);
+            references: references,
+            options: new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
@@ -49,7 +51,32 @@ public class RoslynCSharpAnalyzer
             semanticModel,
             analysis);
 
+        BuildDiagnostics(
+            compilation,
+            analysis);
+
         return analysis;
+    }
+
+    private static IEnumerable<MetadataReference> GetMetadataReferences()
+    {
+        var trustedAssemblies =
+            AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string;
+
+        if (string.IsNullOrWhiteSpace(trustedAssemblies))
+        {
+            yield return MetadataReference.CreateFromFile(
+                typeof(object).Assembly.Location);
+
+            yield break;
+        }
+
+        foreach (var assemblyPath in trustedAssemblies.Split(
+                     Path.PathSeparator))
+        {
+            yield return MetadataReference.CreateFromFile(
+                assemblyPath);
+        }
     }
 
     private static CodeType CreateCodeType(
@@ -106,7 +133,11 @@ public class RoslynCSharpAnalyzer
 
             FieldDeclarationSyntax field => new CodeMember
             {
-                Name = field.Declaration.Variables.First().Identifier.Text,
+                Name = field.Declaration.Variables
+                    .First()
+                    .Identifier
+                    .Text,
+
                 Kind = CodeMemberKind.Field,
                 ReturnType = field.Declaration.Type.ToString()
             },
@@ -209,7 +240,9 @@ public class RoslynCSharpAnalyzer
                     continue;
 
                 var fieldType =
-                    semanticModel.GetTypeInfo(field.Declaration.Type).Type;
+                    semanticModel
+                        .GetTypeInfo(field.Declaration.Type)
+                        .Type;
 
                 if (fieldType is null)
                     continue;
@@ -228,6 +261,33 @@ public class RoslynCSharpAnalyzer
                         Type = RelationshipType.Dependency
                     });
             }
+        }
+    }
+
+    private static void BuildDiagnostics(
+        Compilation compilation,
+        CodeAnalysis analysis)
+    {
+        var diagnostics = compilation.GetDiagnostics();
+
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Severity == DiagnosticSeverity.Hidden)
+                continue;
+
+            var lineSpan = diagnostic.Location.GetLineSpan();
+
+            var line = lineSpan.StartLinePosition;
+
+            analysis.Diagnostics.Add(
+                new CodeDiagnostic
+                {
+                    Id = diagnostic.Id,
+                    Message = diagnostic.GetMessage(),
+                    Severity = diagnostic.Severity.ToString(),
+                    StartLine = line.Line + 1,
+                    StartColumn = line.Character + 1
+                });
         }
     }
 }
