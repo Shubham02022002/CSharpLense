@@ -104,9 +104,7 @@ public class RoslynCSharpAnalyzer : ICSharpAnalyzer
         {
             foreach (var member in typeDeclaration.Members)
             {
-                var codeMember = CreateCodeMember(
-                    member,
-                    semanticModel);
+                var codeMember = CreateCodeMember(member);
 
                 if (codeMember is not null)
                 {
@@ -119,8 +117,7 @@ public class RoslynCSharpAnalyzer : ICSharpAnalyzer
     }
 
     private static CodeMember? CreateCodeMember(
-        MemberDeclarationSyntax member,
-        SemanticModel semanticModel)
+    MemberDeclarationSyntax member)
     {
         return member switch
         {
