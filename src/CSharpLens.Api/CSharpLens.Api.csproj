@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CSharpLens.AI\CSharpLens.AI.csproj" />
     <ProjectReference Include="..\CSharpLens.Analysis\CSharpLens.Analysis.csproj" />
+    <ProjectReference Include="..\CSharpLens.Voice\CSharpLens.Voice.csproj" />
   </ItemGroup>
 
 </Project>
