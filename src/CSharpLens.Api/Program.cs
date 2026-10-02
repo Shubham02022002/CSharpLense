@@ -19,6 +19,8 @@ builder.Services.AddSingleton<ICSharpAnalyzer, RoslynCSharpAnalyzer>();
 var app = builder.Build();
 app.UseCors("Frontend");
 
+
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

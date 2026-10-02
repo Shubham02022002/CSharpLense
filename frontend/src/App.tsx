@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { CodeAnalysis } from "./types/analysis";
+import CodeEditor from "./components/CodeEditor";
+import { analyzeCode } from "./services/analysisApi";
+import AnalysisPanel from "./components/AnalysisPanel";
 
 function App() {
   const [code, setCode] = useState(`using System;
@@ -23,49 +26,17 @@ public class Order
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5142/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sourceCode: code,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Analysis request failed");
-      }
-
-      const result: CodeAnalysis = await response.json();
+      const result = await analyzeCode(code);
       setAnalysis(result);
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : "Something went wrong"
+        error instanceof Error
+          ? error.message
+          : "Something went wrong"
       );
     } finally {
       setLoading(false);
     }
-  };
-
-  const getTypeKind = (kind: number | string) => {
-    if (typeof kind === "string") {
-      return kind;
-    }
-
-    const kinds = ["Class", "Interface", "Struct", "Record", "Enum"];
-
-    return kinds[kind] ?? "Unknown";
-  };
-
-  const getMemberKind = (kind: number | string) => {
-    if (typeof kind === "string") {
-      return kind;
-    }
-
-    const kinds = ["Constructor", "Method", "Property", "Field"];
-
-    return kinds[kind] ?? "Unknown";
   };
 
   return (
@@ -120,47 +91,11 @@ public class Order
           height: "calc(100vh - 64px)",
         }}
       >
-        {/* CODE */}
-        <section
-          style={{
-            borderRight: "1px solid #252936",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div
-            style={{
-              padding: "14px 20px",
-              borderBottom: "1px solid #252936",
-              color: "#9ca3af",
-              fontSize: "13px",
-            }}
-          >
-            C# Code
-          </div>
+        <CodeEditor
+          code={code}
+          onChange={setCode}
+        />
 
-          <textarea
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            spellCheck={false}
-            style={{
-              flex: 1,
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "20px",
-              resize: "none",
-              border: "none",
-              outline: "none",
-              background: "#151821",
-              color: "#e5e7eb",
-              fontFamily: "monospace",
-              fontSize: "14px",
-              lineHeight: 1.7,
-            }}
-          />
-        </section>
-
-        {/* ANALYSIS */}
         <section
           style={{
             display: "flex",
@@ -216,219 +151,8 @@ public class Order
               </div>
             )}
 
-            {analysis && (
-              <>
-                {/* Summary */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "12px",
-                    marginBottom: "24px",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "16px",
-                      background: "#151821",
-                      border: "1px solid #252936",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ color: "#9ca3af", fontSize: "12px" }}>
-                      Types
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        fontSize: "22px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {analysis.types.length}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "16px",
-                      background: "#151821",
-                      border: "1px solid #252936",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ color: "#9ca3af", fontSize: "12px" }}>
-                      Relationships
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        fontSize: "22px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {analysis.relationships.length}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "16px",
-                      background: "#151821",
-                      border: "1px solid #252936",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ color: "#9ca3af", fontSize: "12px" }}>
-                      Diagnostics
-                    </div>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        fontSize: "22px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {analysis.diagnostics.length}
-                    </div>
-                  </div>
-                </div>
-
-                {/* TYPES */}
-                <div>
-                  <h2
-                    style={{
-                      fontSize: "15px",
-                      margin: "0 0 12px",
-                    }}
-                  >
-                    Types
-                  </h2>
-
-                  {analysis.types.map((type) => (
-                    <div
-                      key={type.id}
-                      style={{
-                        marginBottom: "14px",
-                        padding: "16px",
-                        background: "#151821",
-                        border: "1px solid #252936",
-                        borderRadius: "8px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {type.name}
-                        </div>
-
-                        <span
-                          style={{
-                            padding: "4px 8px",
-                            borderRadius: "5px",
-                            background: "#252936",
-                            color: "#9ca3af",
-                            fontSize: "11px",
-                          }}
-                        >
-                          {getTypeKind(type.kind)}
-                        </span>
-                      </div>
-
-                      {type.members.length > 0 && (
-                        <div
-                          style={{
-                            marginTop: "14px",
-                            borderTop: "1px solid #252936",
-                            paddingTop: "10px",
-                          }}
-                        >
-                          {type.members.map((member) => (
-                            <div
-                              key={member.id}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                padding: "8px 0",
-                                fontSize: "13px",
-                              }}
-                            >
-                              <span style={{ color: "#d1d5db" }}>
-                                {member.name}
-                              </span>
-
-                              <span style={{ color: "#6b7280" }}>
-                                {getMemberKind(member.kind)}
-                                {member.returnType
-                                  ? ` · ${member.returnType}`
-                                  : ""}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* DIAGNOSTICS */}
-                {analysis.diagnostics.length > 0 && (
-                  <div style={{ marginTop: "28px" }}>
-                    <h2
-                      style={{
-                        fontSize: "15px",
-                        margin: "0 0 12px",
-                      }}
-                    >
-                      Diagnostics
-                    </h2>
-
-                    {analysis.diagnostics.map((diagnostic, index) => (
-                      <div
-                        key={`${diagnostic.id}-${index}`}
-                        style={{
-                          padding: "14px",
-                          marginBottom: "10px",
-                          border: "1px solid #7f1d1d",
-                          borderRadius: "8px",
-                          background: "#1f1215",
-                        }}
-                      >
-                        <div
-                          style={{
-                            color: "#fca5a5",
-                            fontSize: "13px",
-                          }}
-                        >
-                          {diagnostic.message}
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "6px",
-                            color: "#9ca3af",
-                            fontSize: "11px",
-                          }}
-                        >
-                          Line {diagnostic.startLine}, Column{" "}
-                          {diagnostic.startColumn}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+            {/* ANALYSIS RESULT */}
+            {analysis && <AnalysisPanel analysis={analysis} />}
           </div>
         </section>
       </main>
