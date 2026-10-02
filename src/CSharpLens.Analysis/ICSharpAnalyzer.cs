@@ -1,6 +1,6 @@
 using CSharpLens.Domain.Models;
 
-namespace CSharpLens.Cli.Analysis;
+namespace CSharpLens.Analysis;
 
 public interface ICSharpAnalyzer
 {

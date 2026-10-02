@@ -1,4 +1,4 @@
-﻿using CSharpLens.Cli.Analysis;
+﻿using CSharpLens.Analysis;
 
 var filePath = args.Length > 0
     ? args[0]

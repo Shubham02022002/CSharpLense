@@ -3,12 +3,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CSharpLens.Cli.Analysis;
+namespace CSharpLens.Analysis;
 
 public class RoslynCSharpAnalyzer : ICSharpAnalyzer
 {
     public async Task<CodeAnalysis> AnalyzeAsync(
-             string sourceCode,
+            string sourceCode,
              CancellationToken cancellationToken = default)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);

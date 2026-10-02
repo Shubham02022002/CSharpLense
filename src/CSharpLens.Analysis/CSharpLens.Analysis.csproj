@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -12,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CSharpLens.Analysis\CSharpLens.Analysis.csproj" />
+    <ProjectReference Include="..\CSharpLens.Domain\CSharpLens.Domain.csproj" />
   </ItemGroup>
 
 </Project>

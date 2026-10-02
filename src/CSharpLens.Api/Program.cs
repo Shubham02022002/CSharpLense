@@ -1,4 +1,4 @@
-using CSharpLens.Cli.Analysis;
+using CSharpLens.Analysis;
 
 var builder = WebApplication.CreateBuilder(args);
 
