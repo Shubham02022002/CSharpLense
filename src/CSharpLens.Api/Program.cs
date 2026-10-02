@@ -1,12 +1,23 @@
 using CSharpLens.Analysis;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<ICSharpAnalyzer, RoslynCSharpAnalyzer>();
 
 var app = builder.Build();
+app.UseCors("Frontend");
 
 if (app.Environment.IsDevelopment())
 {
