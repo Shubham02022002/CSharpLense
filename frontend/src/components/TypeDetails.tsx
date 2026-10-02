@@ -1,201 +1,184 @@
-import type { CodeType } from "../types/analysis";
+import type { CodeAnalysis, CodeMember, CodeType } from "../types/analysis";
+import { findMember, findType, formatLocation } from "../lib/model";
 
 interface TypeDetailsProps {
-    type: CodeType | null;
+  analysis: CodeAnalysis;
+  selectedNodeId: string | null;
+  onSelectNode: (nodeId: string) => void;
 }
 
-function getTypeKind(kind: number | string) {
-    if (typeof kind === "string") {
-        return kind;
-    }
+/** Only callables take a parameter list; a field is just its type and name. */
+function memberSignature(member: CodeMember) {
+  const head = member.returnType ? `${member.returnType} ` : "";
 
-    const kinds = [
-        "Class",
-        "Interface",
-        "Struct",
-        "Record",
-        "Enum",
-    ];
-
-    return kinds[kind] ?? "Unknown";
+  return member.kind === "Method" || member.kind === "Constructor"
+    ? `${head}${member.name}(${member.parameters.join(", ")})`
+    : `${head}${member.name}`;
 }
 
-function getMemberKind(kind: number | string) {
-    if (typeof kind === "string") {
-        return kind;
-    }
+function TypeDetails({
+  analysis,
+  selectedNodeId,
+  onSelectNode,
+}: TypeDetailsProps) {
+  const selectedType = findType(analysis, selectedNodeId);
+  const owner = selectedType ?? null;
+  const selectedMember = owner ? null : findMember(analysis, selectedNodeId);
 
-    const kinds = [
-        "Constructor",
-        "Method",
-        "Property",
-        "Field",
-    ];
+  const type: CodeType | null =
+    owner ??
+    (selectedMember
+      ? (analysis.types.find((candidate) =>
+          candidate.members.some((member) => member.id === selectedMember.id),
+        ) ?? null)
+      : null);
 
-    return kinds[kind] ?? "Unknown";
-}
+  if (!type) {
+    return null;
+  }
 
-function TypeDetails({ type }: TypeDetailsProps) {
-    if (!type) {
-        return (
-            <section
-                style={{
-                    padding: "20px",
-                    border: "1px solid #252936",
-                    borderRadius: "10px",
-                    background: "#11141b",
-                    color: "#6b7280",
-                    textAlign: "center",
-                }}
-            >
-                Select a type from the graph to inspect it.
-            </section>
-        );
-    }
+  const modifiers = [
+    type.accessibility,
+    type.isStatic ? "static" : "",
+    type.isAbstract ? "abstract" : "",
+  ].filter(Boolean);
 
-    return (
-        <section
-            style={{
-                border: "1px solid #252936",
-                borderRadius: "10px",
-                background: "#11141b",
-                overflow: "hidden",
-            }}
+  return (
+    <section style={{ paddingBottom: "4px" }}>
+      <header
+        style={{
+          padding: "2px 4px 12px",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "var(--text-strong)",
+            wordBreak: "break-word",
+          }}
         >
-            {/* Header */}
-            <div
-                style={{
-                    padding: "16px 18px",
-                    borderBottom: "1px solid #252936",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                <div>
-                    <div
-                        style={{
-                            fontSize: "16px",
-                            fontWeight: 600,
-                            color: "#f9fafb",
-                        }}
-                    >
-                        {type.name}
-                    </div>
+          {type.name}
+        </div>
 
-                    <div
-                        style={{
-                            marginTop: "4px",
-                            fontSize: "12px",
-                            color: "#8b9cf6",
-                        }}
-                    >
-                        {getTypeKind(type.kind)}
-                    </div>
+        <div
+          style={{
+            marginTop: "5px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "6px",
+            fontSize: "11px",
+          }}
+        >
+          <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+            {modifiers.join(" ")} {type.kind.toLowerCase()}
+          </span>
+
+          <span style={{ color: "var(--text-muted)" }}>
+            {formatLocation(type.location)}
+          </span>
+        </div>
+
+        {type.namespace && (
+          <div
+            style={{
+              marginTop: "5px",
+              fontSize: "11px",
+              color: "var(--text-faint)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {type.namespace}
+          </div>
+        )}
+      </header>
+
+      {type.baseTypes.length > 0 && (
+        <div
+          style={{
+            padding: "10px 4px",
+            borderBottom: "1px solid var(--border)",
+            fontSize: "11px",
+            color: "var(--text-muted)",
+          }}
+        >
+          <span style={{ color: "var(--text-muted)" }}>implements </span>
+          <span style={{ fontFamily: "var(--font-mono)" }}>
+            {type.baseTypes.join(", ")}
+          </span>
+        </div>
+      )}
+
+      <div style={{ paddingTop: "8px" }}>
+        {type.members.length === 0 ? (
+          <div
+            style={{
+              padding: "12px 4px",
+              color: "var(--text-faint)",
+              fontSize: "12px",
+            }}
+          >
+            No members.
+          </div>
+        ) : (
+          type.members.map((member) => {
+            const isSelected = member.id === selectedNodeId;
+
+            return (
+              <button
+                key={member.id}
+                type="button"
+                className="cls-row"
+                data-selected={isSelected}
+                onClick={() => onSelectNode(member.id)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                  color: "inherit",
+                  font: "inherit",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: isSelected ? "var(--text-strong)" : "var(--text)",
+                    fontFamily: "var(--font-mono)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {memberSignature(member)}
                 </div>
 
-                <span
-                    style={{
-                        padding: "5px 9px",
-                        borderRadius: "6px",
-                        background: "#1b2030",
-                        color: "#9ca3af",
-                        fontSize: "11px",
-                    }}
+                <div
+                  style={{
+                    marginTop: "3px",
+                    display: "flex",
+                    gap: "8px",
+                    fontSize: "10px",
+                    color: "var(--text-faint)",
+                  }}
                 >
-                    {type.members.length} members
-                </span>
-            </div>
-
-            {/* Members */}
-            <div style={{ padding: "8px 18px 14px" }}>
-                {type.members.length === 0 ? (
-                    <div
-                        style={{
-                            padding: "16px 0",
-                            color: "#6b7280",
-                            fontSize: "13px",
-                        }}
-                    >
-                        No members found.
-                    </div>
-                ) : (
-                    type.members.map((member) => (
-                        <div
-                            key={member.id}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: "20px",
-                                padding: "11px 0",
-                                borderBottom: "1px solid #1d2029",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    minWidth: 0,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        color: "#d1d5db",
-                                        fontSize: "13px",
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    {member.name}
-                                </div>
-
-                                {member.parameters.length > 0 && (
-                                    <div
-                                        style={{
-                                            marginTop: "4px",
-                                            color: "#6b7280",
-                                            fontSize: "11px",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                        }}
-                                    >
-                                        ({member.parameters.join(", ")})
-                                    </div>
-                                )}
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px",
-                                    flexShrink: 0,
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        color: "#8b9cf6",
-                                        fontSize: "11px",
-                                    }}
-                                >
-                                    {getMemberKind(member.kind)}
-                                </span>
-
-                                {member.returnType && (
-                                    <span
-                                        style={{
-                                            color: "#6b7280",
-                                            fontSize: "11px",
-                                        }}
-                                    >
-                                        {member.returnType}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </section>
-    );
+                  {member.accessibility && <span>{member.accessibility}</span>}
+                  {member.isStatic && <span>static</span>}
+                  <span style={{ color: "var(--accent)" }}>
+                    {member.kind.toLowerCase()}
+                  </span>
+                  <span>line {member.location.startLine}</span>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
 }
 
 export default TypeDetails;

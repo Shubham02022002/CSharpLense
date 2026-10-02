@@ -1,135 +1,213 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+
 import type { CodeAnalysis } from "./types/analysis";
 import CodeEditor from "./components/CodeEditor";
-import { analyzeCode } from "./services/analysisApi";
 import AnalysisPanel from "./components/AnalysisPanel";
+import { analyzeCode } from "./services/analysisApi";
+import { useWorkspace } from "./hooks/useWorkspace";
 
-function App() {
-  const [code, setCode] = useState(`using System;
+const SAMPLE = `using System;
+
+public interface IPaymentService
+{
+    void Pay(decimal amount);
+}
+
+public class PaymentService : IPaymentService
+{
+    public void Pay(decimal amount)
+    {
+        Console.WriteLine($"Paid {amount}");
+    }
+}
 
 public class Order
 {
-    public string Id { get; set; }
+    private readonly IPaymentService _paymentService;
 
-    public void Checkout()
+    public Order(IPaymentService paymentService)
     {
-        Console.WriteLine("Checking out...");
+        _paymentService = paymentService;
     }
-}`);
 
+    public void Checkout(decimal amount)
+    {
+        _paymentService.Pay(amount);
+    }
+}`;
+
+function App() {
+  const [code, setCode] = useState(SAMPLE);
   const [analysis, setAnalysis] = useState<CodeAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleAnalyze = async () => {
+  const workspace = useWorkspace(analysis);
+
+  const handleAnalyze = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const result = await analyzeCode(code);
-      setAnalysis(result);
-    } catch (error) {
+      setAnalysis(await analyzeCode(code));
+    } catch (cause) {
+      setAnalysis(null);
       setError(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong"
+        cause instanceof Error ? cause.message : "Something went wrong.",
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [code]);
+
+  // Moving the caret selects the enclosing node, but must not scroll the editor.
+  const handleCursorNode = useCallback(
+    (nodeId: string | null) => workspace.selectNode(nodeId, "source"),
+    [workspace],
+  );
 
   return (
     <div
       style={{
-        minHeight: "100vh",
-        background: "#0f1117",
-        color: "#ffffff",
-        fontFamily: "Inter, system-ui, sans-serif",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--bg)",
       }}
     >
       <header
         style={{
-          height: "64px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 28px",
-          borderBottom: "1px solid #252936",
+          gap: "16px",
+          height: "62px",
+          flexShrink: 0,
+          padding: "0 24px",
+          background: "var(--surface-raised)",
+          borderBottom: "1px solid var(--border)",
+          boxShadow: "0 1px 0 var(--gold-bright), 0 8px 24px rgba(23, 18, 32, 0.05)",
         }}
       >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "20px",
-          }}
-        >
-          CSharpLens
-        </h1>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
+          <h1
+            style={{
+              fontSize: "15px",
+              fontWeight: 800,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+            }}
+          >
+            CSharpLens
+          </h1>
+
+          <span
+            style={{
+              fontSize: "12px",
+              letterSpacing: "0.01em",
+              color: "var(--text-muted)",
+            }}
+          >
+            Roslyn-backed code intelligence
+          </span>
+        </div>
 
         <button
+          type="button"
           onClick={handleAnalyze}
           disabled={loading}
           style={{
-            padding: "9px 18px",
+            padding: "9px 22px",
             border: "none",
-            borderRadius: "7px",
-            background: loading ? "#6b7280" : "#ffffff",
-            color: "#111111",
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
+            borderRadius: "var(--radius-sm)",
+            background: loading ? "var(--border-strong)" : "var(--accent)",
+            color: loading ? "var(--text-muted)" : "#ffffff",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            cursor: loading ? "progress" : "pointer",
+            transition: "background 120ms ease",
           }}
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          {loading ? "Analyzing…" : "Analyze"}
         </button>
       </header>
 
       <main
         style={{
+          flex: 1,
+          minHeight: 0,
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          height: "calc(100vh - 64px)",
+          // The graph needs the width more than the editor does.
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.25fr)",
         }}
       >
-        <CodeEditor
-          code={code}
-          onChange={setCode}
-        />
+        <div style={{ borderRight: "1px solid var(--border)", minWidth: 0 }}>
+          <CodeEditor
+            code={code}
+            onChange={setCode}
+            analysis={analysis}
+            selectedNodeId={workspace.selectedNodeId}
+            reveal={workspace.reveal}
+            onCursorNode={handleCursorNode}
+          />
+        </div>
 
         <section
           style={{
             display: "flex",
             flexDirection: "column",
             minWidth: 0,
+            minHeight: 0,
           }}
         >
-          <div
+          <header
+            className="cls-label"
             style={{
-              padding: "14px 20px",
-              borderBottom: "1px solid #252936",
-              color: "#9ca3af",
-              fontSize: "13px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              height: "40px",
+              flexShrink: 0,
+              padding: "0 16px",
+              borderBottom: "1px solid var(--border)",
             }}
           >
             Analysis
-          </div>
+
+            {analysis && (
+              <span
+                style={{
+                  fontWeight: 400,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                  color: "var(--text-faint)",
+                }}
+              >
+                {analysis.types.length} types ·{" "}
+                {analysis.relationships.length} relationships
+                {analysis.diagnostics.length > 0 &&
+                  ` · ${analysis.diagnostics.length} diagnostics`}
+              </span>
+            )}
+          </header>
 
           <div
-            style={{
-              flex: 1,
-              padding: "24px",
-              overflow: "auto",
-            }}
+            className="scroll"
+            style={{ flex: 1, minHeight: 0, padding: "16px" }}
           >
             {error && (
               <div
                 style={{
-                  padding: "14px",
-                  marginBottom: "20px",
-                  border: "1px solid #7f1d1d",
-                  borderRadius: "8px",
-                  background: "#1f1215",
-                  color: "#fca5a5",
+                  padding: "12px 14px",
+                  marginBottom: "16px",
+                  border: "1px solid var(--error)",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--error-wash)",
+                  color: "var(--error)",
+                  fontSize: "13px",
                 }}
               >
                 {error}
@@ -143,16 +221,17 @@ public class Order
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#6b7280",
-                  fontSize: "14px",
+                  color: "var(--text-faint)",
+                  fontSize: "13px",
                 }}
               >
                 Analyze your C# code to see its structure.
               </div>
             )}
 
-            {/* ANALYSIS RESULT */}
-            {analysis && <AnalysisPanel analysis={analysis} />}
+            {analysis && (
+              <AnalysisPanel analysis={analysis} workspace={workspace} />
+            )}
           </div>
         </section>
       </main>

@@ -1,111 +1,179 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --bg: #f4efe6;
+  --surface: #fbf8f2;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ece5d9;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --border: #e2d9ca;
+  --border-strong: #cabfab;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  --text: #332c3d;
+  --text-strong: #171220;
+  --text-muted: #5c5446;
+  --text-faint: #7a7161;
+
+  --accent: #4f2bab;
+  --accent-soft: #7c4fd0;
+  --accent-wash: rgba(79, 43, 171, 0.09);
+  --accent-surface: #ebe4fa;
+
+  --gold: #b8862a;
+  --gold-bright: #d4a24a;
+
+  --error: #b3261e;
+  --error-wash: rgba(179, 38, 30, 0.08);
+  --warning: #8a5d0c;
+  --warning-wash: rgba(138, 93, 12, 0.1);
+  --info: #2f6fb5;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --font-sans: Inter, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  color-scheme: light;
+  font-family: var(--font-sans);
   color: var(--text);
   background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+  overflow: hidden;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
+h2,
+h3 {
   margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  font-weight: 600;
+  color: var(--text-strong);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: var(--font-mono);
+}
+
+button {
+  font-family: inherit;
+}
+
+.scroll {
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.cls-row {
+  border: none;
+  background: transparent;
+  transition: background 110ms ease;
+}
+
+.cls-row:hover {
+  background: rgba(23, 18, 32, 0.04);
+}
+
+.cls-row[data-selected="true"] {
+  background: var(--accent-wash);
+}
+
+.cls-row[data-selected="true"]:hover {
+  background: rgba(79, 43, 171, 0.16);
+}
+
+.cls-filter {
+  transition:
+    color 110ms ease,
+    background 110ms ease;
+}
+
+.cls-filter:hover {
+  background: rgba(23, 18, 32, 0.04);
+}
+
+/*
+ * React Flow ships a light theme and its stylesheet is imported after this one,
+ * so these overrides carry an extra class to win on specificity rather than on
+ * order.
+ */
+.react-flow .react-flow__controls {
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.react-flow .react-flow__controls-button {
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.react-flow .react-flow__controls-button:hover {
+  background: var(--surface-sunken);
+}
+
+.react-flow .react-flow__controls-button svg {
+  fill: var(--text-muted);
+}
+
+.react-flow .react-flow__attribution {
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.react-flow .react-flow__attribution a {
+  color: var(--text-faint);
+}
+
+.cls-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cls-selected-span {
+  background: rgba(79, 43, 171, 0.12);
+  border-radius: 3px;
+}
+
+.cls-selected-marker {
+  border-left: 2px solid var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
