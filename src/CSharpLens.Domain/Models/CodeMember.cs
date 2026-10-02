@@ -5,7 +5,8 @@ public enum CodeMemberKind
     Constructor,
     Method,
     Property,
-    Field
+    Field,
+    Event
 }
 
 public class CodeMember
@@ -18,5 +19,11 @@ public class CodeMember
 
     public string ReturnType { get; set; } = "";
 
+    public string Accessibility { get; set; } = "";
+
+    public bool IsStatic { get; set; }
+
     public List<string> Parameters { get; set; } = [];
+
+    public CodeLocation Location { get; set; } = new();
 }
