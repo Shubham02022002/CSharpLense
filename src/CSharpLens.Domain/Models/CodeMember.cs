@@ -1,4 +1,4 @@
-namespace CSharpLens.Cli.Domain;
+namespace CSharpLens.Domain.Models;
 
 public enum CodeMemberKind
 {

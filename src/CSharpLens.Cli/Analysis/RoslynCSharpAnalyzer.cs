@@ -1,4 +1,4 @@
-using CSharpLens.Cli.Domain;
+using CSharpLens.Domain.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

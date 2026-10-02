@@ -1,5 +1,4 @@
-namespace CSharpLens.Cli.Domain;
-
+namespace CSharpLens.Domain.Models;
 public class CodeAnalysis
 {
     public List<CodeType> Types { get; set; } = [];

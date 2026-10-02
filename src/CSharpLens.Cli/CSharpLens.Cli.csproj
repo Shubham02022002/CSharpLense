@@ -11,4 +11,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CSharpLens.Domain\CSharpLens.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

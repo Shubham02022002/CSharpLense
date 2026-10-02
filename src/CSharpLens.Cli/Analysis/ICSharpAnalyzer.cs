@@ -1,4 +1,4 @@
-using CSharpLens.Cli.Domain;
+using CSharpLens.Domain.Models;
 
 namespace CSharpLens.Cli.Analysis;
 
