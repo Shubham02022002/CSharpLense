@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/CSharpLens.AI/CSharpLens.AI.csproj" />
     <Project Path="src/CSharpLens.Analysis/CSharpLens.Analysis.csproj" />
     <Project Path="src/CSharpLens.Api/CSharpLens.Api.csproj" />
     <Project Path="src/CSharpLens.Cli/CSharpLens.Cli.csproj" />
     <Project Path="src/CSharpLens.Domain/CSharpLens.Domain.csproj" />
+    <Project Path="src/CSharpLens.Voice/CSharpLens.Voice.csproj" />
   </Folder>
 </Solution>
