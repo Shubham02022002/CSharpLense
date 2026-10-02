@@ -8,8 +8,8 @@ namespace CSharpLens.Cli.Analysis;
 public class RoslynCSharpAnalyzer : ICSharpAnalyzer
 {
     public async Task<CodeAnalysis> AnalyzeAsync(
-    string sourceCode,
-    CancellationToken cancellationToken = default)
+             string sourceCode,
+             CancellationToken cancellationToken = default)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
 
@@ -117,7 +117,7 @@ public class RoslynCSharpAnalyzer : ICSharpAnalyzer
     }
 
     private static CodeMember? CreateCodeMember(
-    MemberDeclarationSyntax member)
+            MemberDeclarationSyntax member)
     {
         return member switch
         {
