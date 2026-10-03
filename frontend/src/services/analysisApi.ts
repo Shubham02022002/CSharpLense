@@ -1,6 +1,5 @@
 import type { CodeAnalysis } from "../types/analysis";
-
-const API_URL = "http://localhost:5142";
+import { API_URL } from "./apiBase";
 
 export async function analyzeCode(sourceCode: string): Promise<CodeAnalysis> {
   const response = await fetch(`${API_URL}/api/analyze`, {

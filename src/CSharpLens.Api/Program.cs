@@ -4,9 +4,14 @@ using CSharpLens.AI;
 using CSharpLens.Analysis;
 using CSharpLens.Api;
 using CSharpLens.Voice;
+using Microsoft.AspNetCore.HttpOverrides;
 
 const int MaxSourceLength = 200_000;
 const int MaxQuestionLength = 2_000;
+
+// The analysis travels with the question, so it is bounded here rather than by
+// the analyzer's source limit.
+const long MaxRequestBodyBytes = 4_194_304;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +31,12 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            policy.WithOrigins("http://localhost:5173");
+            // Read from configuration so the deployed frontend's host is not
+            // baked into the image. Empty means no browser origin is allowed.
+            var origins = (builder.Configuration["CORS_ORIGINS"] ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            policy.WithOrigins(origins);
         }
     });
 });
@@ -40,11 +50,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// The derived model is kept; the submitted source is not.
-builder.Services.AddMemoryCache(options => options.SizeLimit = 512);
-
 builder.Services.AddSingleton<ICSharpAnalyzer, RoslynCSharpAnalyzer>();
-builder.Services.AddSingleton<IAnalysisStore, InMemoryAnalysisStore>();
 
 // Explanations fall back to a Roslyn-only summary when no provider key is set.
 var anthropicApiKey = GetSetting(builder.Configuration, AnthropicDefaults.ApiKeyVariable);
@@ -108,10 +114,26 @@ builder.Services.AddRateLimiter(options =>
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 1_048_576;
+    options.Limits.MaxRequestBodySize = MaxRequestBodyBytes;
 });
 
 var app = builder.Build();
+
+// A hosted deployment terminates TLS and forwards over plain HTTP, so the
+// original scheme and client address only survive if these headers are read.
+// Without it the redirect below would loop, and every caller would share the
+// proxy's address in the rate limiter's partition key.
+var forwardedHeaders = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+
+// The proxy's address is not known ahead of time, and the container is only
+// reachable through it, so the default loopback-only trust list is cleared.
+forwardedHeaders.KnownNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeaders);
 
 app.UseCors("Frontend");
 app.UseRateLimiter();
@@ -133,7 +155,6 @@ app.MapGet("/api/capabilities", () => Results.Ok(new CapabilitiesResponse(
 app.MapPost("/api/analyze", async (
     AnalyzeRequest request,
     ICSharpAnalyzer analyzer,
-    IAnalysisStore store,
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken) =>
 {
@@ -166,28 +187,20 @@ app.MapPost("/api/analyze", async (
         analysis.Relationships.Count,
         analysis.Diagnostics.Count);
 
-    store.Save(analysis);
-
     return Results.Ok(analysis);
 });
 
-app.MapGet("/api/analyze/{id:guid}", (Guid id, IAnalysisStore store) =>
-{
-    var analysis = store.Get(id);
-
-    return analysis is null
-        ? Results.NotFound(new { error = "Analysis not found or expired." })
-        : Results.Ok(analysis);
-});
-
-app.MapPost("/api/analyze/{id:guid}/questions", async (
-    Guid id,
+app.MapPost("/api/questions", async (
     QuestionRequest request,
-    IAnalysisStore store,
     ICodeExplanationService explainer,
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken) =>
 {
+    if (request.Analysis is null)
+    {
+        return Results.BadRequest(new { error = "An analysis is required." });
+    }
+
     if (string.IsNullOrWhiteSpace(request.Question))
     {
         return Results.BadRequest(new { error = "Question cannot be empty." });
@@ -201,20 +214,13 @@ app.MapPost("/api/analyze/{id:guid}/questions", async (
         });
     }
 
-    var analysis = store.Get(id);
-
-    if (analysis is null)
-    {
-        return Results.NotFound(new { error = "Analysis not found or expired." });
-    }
-
     var logger = loggerFactory.CreateLogger("Explain");
     var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
     try
     {
         var explanation = await explainer.ExplainAsync(
-            analysis,
+            request.Analysis,
             request.Question,
             cancellationToken);
 
@@ -238,30 +244,29 @@ app.MapPost("/api/analyze/{id:guid}/questions", async (
     }
 }).RequireRateLimiting("ai");
 
-app.MapPost("/api/analyze/{id:guid}/nodes/{nodeId:guid}/explain", async (
-    Guid id,
-    Guid nodeId,
-    IAnalysisStore store,
+app.MapPost("/api/explain", async (
+    ExplainNodeRequest request,
     ICodeExplanationService explainer,
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken) =>
 {
-    var analysis = store.Get(id);
-
-    if (analysis is null)
+    if (request.Analysis is null)
     {
-        return Results.NotFound(new { error = "Analysis not found or expired." });
+        return Results.BadRequest(new { error = "An analysis is required." });
     }
 
     var logger = loggerFactory.CreateLogger("Explain");
 
     try
     {
-        var explanation = await explainer.ExplainNodeAsync(analysis, nodeId, cancellationToken);
+        var explanation = await explainer.ExplainNodeAsync(
+            request.Analysis,
+            request.NodeId,
+            cancellationToken);
 
         logger.LogInformation(
             "Explained node {NodeId} via {Source}",
-            nodeId,
+            request.NodeId,
             explanation.Source);
 
         return Results.Ok(explanation);
@@ -276,8 +281,7 @@ app.MapPost("/api/analyze/{id:guid}/nodes/{nodeId:guid}/explain", async (
     }
 }).RequireRateLimiting("ai");
 
-app.MapPost("/api/analyze/{id:guid}/speak", async (
-    Guid id,
+app.MapPost("/api/speak", async (
     SpeakRequest request,
     ISpeechService speech,
     ILoggerFactory loggerFactory,

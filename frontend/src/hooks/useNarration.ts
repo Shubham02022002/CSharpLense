@@ -79,7 +79,7 @@ export function useNarration(
       setError("");
 
       try {
-        const audio = await synthesize(analysisId, text);
+        const audio = await synthesize(text);
         const url = URL.createObjectURL(audio);
         const element = new Audio(url);
 
@@ -118,7 +118,7 @@ export function useNarration(
         );
       }
     },
-    [analysisId, release, speakLocally, speechConfigured],
+    [release, speakLocally, speechConfigured],
   );
 
   const stop = useCallback(() => {

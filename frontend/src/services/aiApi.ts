@@ -1,6 +1,5 @@
-import type { Capabilities, CodeExplanation } from "../types/analysis";
-
-const API_URL = "http://localhost:5142";
+import type { Capabilities, CodeAnalysis, CodeExplanation } from "../types/analysis";
+import { API_URL } from "./apiBase";
 
 /** A failed request, carrying the status so callers can spot a rate limit. */
 export class ApiError extends Error {
@@ -42,14 +41,19 @@ export async function getCapabilities(): Promise<Capabilities> {
   return response.json();
 }
 
+/**
+ * The analysis goes back with the question. The server keeps nothing between
+ * requests, and a node id only means anything next to the analysis that
+ * produced it.
+ */
 export async function askQuestion(
-  analysisId: string,
+  analysis: CodeAnalysis,
   question: string,
 ): Promise<CodeExplanation> {
-  const response = await fetch(`${API_URL}/api/analyze/${analysisId}/questions`, {
+  const response = await fetch(`${API_URL}/api/questions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ analysis, question }),
   });
 
   if (!response.ok) {
@@ -60,13 +64,14 @@ export async function askQuestion(
 }
 
 export async function explainNode(
-  analysisId: string,
+  analysis: CodeAnalysis,
   nodeId: string,
 ): Promise<CodeExplanation> {
-  const response = await fetch(
-    `${API_URL}/api/analyze/${analysisId}/nodes/${nodeId}/explain`,
-    { method: "POST" },
-  );
+  const response = await fetch(`${API_URL}/api/explain`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ analysis, nodeId }),
+  });
 
   if (!response.ok) {
     throw await readError(response,"That node could not be explained.");

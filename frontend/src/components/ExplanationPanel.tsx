@@ -85,9 +85,9 @@ function ExplanationPanel({
         return;
       }
 
-      void run(() => askQuestion(analysis.id, trimmed));
+      void run(() => askQuestion(analysis, trimmed));
     },
-    [analysis.id, pending, question, run],
+    [analysis, pending, question, run],
   );
 
   const selectedName = selectedNodeId
@@ -283,7 +283,7 @@ function ExplanationPanel({
             type="button"
             disabled={pending}
             onClick={() =>
-              void run(() => explainNode(analysis.id, selectedNodeId!))
+              void run(() => explainNode(analysis, selectedNodeId!))
             }
             title={`Ask what ${selectedName} is doing here`}
             className="cls-row"

@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: csharplens-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/capabilities
+    autoDeploy: true
+    envVars:
+      # Set these in the Render dashboard, never in this file. The API falls
+      # back to a Roslyn-only summary and browser narration when they are unset.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      # The deployed frontend's origin, e.g. https://csharplens.vercel.app.
+      # Unset means no browser origin is allowed through CORS.
+      - key: CORS_ORIGINS
+        sync: false
