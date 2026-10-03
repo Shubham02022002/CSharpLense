@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type MouseEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from "react";
 import {
   Background,
   Controls,
@@ -22,6 +15,8 @@ import "@xyflow/react/dist/style.css";
 import type { CodeAnalysis } from "../types/analysis";
 import { findOwnerType } from "../lib/model";
 import { layoutGraph } from "../lib/layout";
+import { RELATIONSHIP_COLORS } from "../lib/relationshipStyle";
+import { useStableHover } from "../hooks/useStableHover";
 
 export interface FocusRequest {
   nodeId: string;
@@ -36,24 +31,18 @@ interface RelationshipGraphProps {
   onSelectNode: (nodeId: string | null) => void;
 }
 
-const RELATIONSHIP_COLORS: Record<string, string> = {
-  Inheritance: "#4f2bab",
-  Implementation: "#0f7a72",
-  Dependency: "var(--gold)",
-};
-
 function GraphCanvas({
   analysis,
   selectedNodeId,
   focusRequest,
   onSelectNode,
 }: RelationshipGraphProps) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const hover = useStableHover<string>();
   const { fitView } = useReactFlow();
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // What the graph is explaining: the hovered node, else the selection.
-  const emphasisId = hoveredId ?? selectedNodeId;
+  const emphasisId = hover.id ?? selectedNodeId;
 
   const expandedTypeId = useMemo(() => {
     const owner = findOwnerType(analysis, selectedNodeId);
@@ -146,6 +135,8 @@ function GraphCanvas({
             boxShadow: isEmphasised
               ? "0 0 0 3px var(--accent-wash)"
               : "none",
+            transition:
+              "opacity 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
           },
         };
       }
@@ -205,6 +196,8 @@ function GraphCanvas({
           boxShadow: isEmphasised
             ? "0 0 0 3px var(--accent-wash)"
             : "0 4px 14px rgba(23, 18, 32, 0.07)",
+          transition:
+            "opacity 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease",
         },
       };
     });
@@ -290,7 +283,8 @@ function GraphCanvas({
     });
   }, [focusRequest, fitView]);
 
-  // React Flow only fits on mount, so refit when the details column opens.
+  // React Flow only fits on mount, so refit whenever the canvas is resized —
+  // the details column changes the width, an answer changes the height.
   useEffect(() => {
     const element = canvasRef.current;
 
@@ -298,16 +292,22 @@ function GraphCanvas({
       return;
     }
 
-    let lastWidth = element.clientWidth;
+    let lastSize = "";
 
-    const observer = new ResizeObserver(() => {
-      const width = element.clientWidth;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
 
-      if (width === 0 || width === lastWidth) {
+      if (width === 0 || height === 0) {
         return;
       }
 
-      lastWidth = width;
+      const size = `${Math.round(width)}x${Math.round(height)}`;
+
+      if (size === lastSize) {
+        return;
+      }
+
+      lastSize = size;
       fitView({ padding: 0.08, maxZoom: 1 });
     });
 
@@ -321,10 +321,10 @@ function GraphCanvas({
     [onSelectNode],
   );
 
-  const handlePaneClick = useCallback(
-    () => onSelectNode(null),
-    [onSelectNode],
-  );
+  const handlePaneClick = useCallback(() => {
+    hover.clear();
+    onSelectNode(null);
+  }, [hover, onSelectNode]);
 
   return (
     <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
@@ -341,8 +341,8 @@ function GraphCanvas({
         attributionPosition="bottom-left"
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
-        onNodeMouseEnter={(_, node) => setHoveredId(node.id)}
-        onNodeMouseLeave={() => setHoveredId(null)}
+        onNodeMouseEnter={(_, node) => hover.enter(node.id)}
+        onNodeMouseLeave={hover.leave}
       >
         <Background gap={22} size={1} color="var(--border-strong)" />
 
