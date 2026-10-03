@@ -130,7 +130,7 @@ var forwardedHeaders = new ForwardedHeadersOptions
 
 // The proxy's address is not known ahead of time, and the container is only
 // reachable through it, so the default loopback-only trust list is cleared.
-forwardedHeaders.KnownNetworks.Clear();
+forwardedHeaders.KnownIPNetworks.Clear();
 forwardedHeaders.KnownProxies.Clear();
 
 app.UseForwardedHeaders(forwardedHeaders);
