@@ -13,7 +13,10 @@ export class ApiError extends Error {
   }
 }
 
-async function failure(response: Response, fallback: string): Promise<ApiError> {
+export async function readError(
+  response: Response,
+  fallback: string,
+): Promise<ApiError> {
   let message = fallback;
 
   try {
@@ -33,7 +36,7 @@ export async function getCapabilities(): Promise<Capabilities> {
   const response = await fetch(`${API_URL}/api/capabilities`);
 
   if (!response.ok) {
-    throw await failure(response, "Could not read server capabilities.");
+    throw await readError(response,"Could not read server capabilities.");
   }
 
   return response.json();
@@ -50,7 +53,7 @@ export async function askQuestion(
   });
 
   if (!response.ok) {
-    throw await failure(response, "The question could not be answered.");
+    throw await readError(response,"The question could not be answered.");
   }
 
   return response.json();
@@ -66,7 +69,7 @@ export async function explainNode(
   );
 
   if (!response.ok) {
-    throw await failure(response, "That node could not be explained.");
+    throw await readError(response,"That node could not be explained.");
   }
 
   return response.json();

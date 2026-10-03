@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CodeAnalysis, CodeExplanation } from "../types/analysis";
 import { ApiError, askQuestion, explainNode } from "../services/aiApi";
 import { useCapabilities } from "../hooks/useCapabilities";
+import { useNarration } from "../hooks/useNarration";
 
 interface ExplanationPanelProps {
   analysis: CodeAnalysis;
@@ -45,11 +46,20 @@ function ExplanationPanel({
   const [explanation, setExplanation] = useState<CodeExplanation | null>(null);
   const [error, setError] = useState("");
 
+  const narration = useNarration(
+    analysis.id,
+    capabilities?.speechConfigured === true,
+  );
+  const { stop: stopNarration } = narration;
+
   // A new analysis is different code, so an old answer would mislead.
   useEffect(() => {
     setExplanation(null);
     setError("");
   }, [analysis.id]);
+
+  // Reading the previous answer over a new one would be worse than stopping.
+  useEffect(() => stopNarration, [explanation, stopNarration]);
 
   const run = useCallback(async (work: () => Promise<CodeExplanation>) => {
     setPending(true);
@@ -111,19 +121,52 @@ function ExplanationPanel({
       >
         <h2 className="cls-label">Explain</h2>
 
-        <span
-          title={
-            capabilities?.aiConfigured
-              ? "Answers come from a language model, grounded in the Roslyn analysis."
-              : "No AI provider is configured on the server; answers are generated locally by pattern."
-          }
-          style={{
-            color: "var(--text-faint)",
-            fontSize: "11px",
-          }}
-        >
-          {providerLabel}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            type="button"
+            disabled={!explanation || narration.state === "loading"}
+            onClick={() => explanation && narration.toggle(explanation.answer)}
+            title={
+              capabilities?.speechConfigured
+                ? "Read this answer aloud."
+                : "No voice provider is configured, so your browser reads it aloud."
+            }
+            style={{
+              padding: "3px 11px",
+              border: "1px solid var(--border-strong)",
+              borderRadius: "999px",
+              background:
+                narration.state === "speaking"
+                  ? "var(--accent-surface)"
+                  : "var(--surface-raised)",
+              color: explanation ? "var(--accent)" : "var(--text-faint)",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              cursor: explanation ? "pointer" : "not-allowed",
+            }}
+          >
+            {narration.state === "loading"
+              ? "Loading…"
+              : narration.state === "speaking"
+                ? "Stop"
+                : "Speak"}
+          </button>
+
+          <span
+            title={
+              capabilities?.aiConfigured
+                ? "Answers come from a language model, grounded in the Roslyn analysis."
+                : "No AI provider is configured on the server; answers are generated locally by pattern."
+            }
+            style={{
+              color: "var(--text-faint)",
+              fontSize: "11px",
+            }}
+          >
+            {providerLabel}
+          </span>
+        </div>
       </header>
 
       {explanation && !pending && (
@@ -212,7 +255,7 @@ function ExplanationPanel({
         </div>
       )}
 
-      {error && (
+      {(error || narration.error) && (
         <div
           style={{
             marginBottom: "10px",
@@ -223,7 +266,7 @@ function ExplanationPanel({
             fontSize: "12px",
           }}
         >
-          {error}
+          {error || narration.error}
         </div>
       )}
 
