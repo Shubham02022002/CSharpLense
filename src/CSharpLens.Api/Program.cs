@@ -14,10 +14,20 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.AllowAnyHeader().AllowAnyMethod();
+
+        if (builder.Environment.IsDevelopment())
+        {
+            // Vite moves to the next free port when 5173 is taken, so any local
+            // port is accepted while developing. Production stays pinned.
+            policy.SetIsOriginAllowed(origin =>
+                Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                && uri.Host is "localhost" or "127.0.0.1");
+        }
+        else
+        {
+            policy.WithOrigins("http://localhost:5173");
+        }
     });
 });
 
